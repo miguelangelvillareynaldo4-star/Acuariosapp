@@ -1,0 +1,43 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  android-build:
+    runs-on: ubuntu-latest
+    container:
+      image: kivy/buildozer:stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('requirements.txt', 'buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
+      - name: Remove stale build output
+        run: |
+          rm -rf .buildozer
+
+      - name: Build APK
+        run: |
+          buildozer --version
+          buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: acuarioapp-debug-apk
+          path: .buildozer/android/platform/build*/dists/*/*.apk
+          if-no-files-found: error
